@@ -1,20 +1,23 @@
 FROM debian:stable
+
 RUN apt update -y > /dev/null 2>&1 && apt upgrade -y > /dev/null 2>&1
-ARG ngrokid
 ARG Password
 ENV Password=${Password}
-ENV ngrokid=${ngrokid}
 RUN apt install openssh-server wget unzip -y > /dev/null 2>&1
-RUN wget -O ngrok.zip https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.zip > /dev/null 2>&1
-RUN unzip ngrok.zip
-RUN echo "./ngrok config add-authtoken ${ngrokid} &&" >>/1.sh
-RUN echo "./ngrok tcp 22 &>/dev/null &" >>/1.sh
+
+# Install Serveo
+RUN wget -O /usr/local/bin/serveo https://storage.googleapis.com/serveo/download/serveo_linux
+RUN chmod +x /usr/local/bin/serveo
+
+# Configure SSH
 RUN mkdir /run/sshd
-RUN echo '/usr/sbin/sshd -D' >>/1.sh
 RUN echo 'PermitRootLogin yes' >>  /etc/ssh/sshd_config 
 RUN echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
 RUN echo root:${Password}|chpasswd
 RUN service ssh start
-RUN chmod 755 /1.sh
+
+# Expose ports
 EXPOSE 80 8888 8080 443 5130 5131 5132 5133 5134 5135 3306
-CMD  /1.sh
+
+# Start Serveo
+CMD /usr/local/bin/serveo -R 80:localhost:80 -R 8888:localhost:8888 -R 8080:localhost:8080 -R 443:localhost:443 -R 5130:localhost:5130 -R 5131:localhost:5131 -R 5132:localhost:5132 -R 5133:localhost:5133 -R 5134:localhost:5134 -R 5135:localhost:5135 -R 3306:localhost:3306 ssh
